@@ -3,9 +3,9 @@ import java.util.*;
 public class os {
 	// Variables and Constants
 	public static int core_address = 0;											// Address in core
-	public static List<PCB> jobTable = new LinkedList<PCB>(); 					// List of job tables
-	public static LinkedList<Integer> readyQueue = new LinkedList<Integer>();	// Queue of jobs in core
-	public static int time_quantum = 10;										// Max run time for a job
+	public static Map<Integer, PCB> jobTable = new HashMap<Integer, PCB>(); 	// List of job tables
+	public static Queue<Integer> readyQueue = new LinkedList<Integer>();		// Queue of jobs in core
+	public static int time_slice = 5;											// Max run time for a job
 	
 	public static final int DRUM_TO_CORE = 0;	    	// Represents direction of swap from drum to core
 	public static final int CORE_TO_DRUM = 1;	    	// Represents direction of swap from core to drum	
@@ -22,21 +22,21 @@ public class os {
 		
 		System.out.println("Crint() CALLED!!!");
 		
-		// Save job info in a PCB if there
-		// is room in the job table
+		// Save job info in a PCB inside the job table indexed
+		// by the job number if there is room in the job table
+		
+		int jobNumber = p[1];	   // First get the job number
+		
 		if(jobTable.size() < 50)
-			jobTable.add(new PCB(p , core_address++));
+			jobTable.put(jobNumber, new PCB(p , core_address));	// Also increment core_address here
 		else
 			throw new Exception("JOB TABLE FULL");
 		
-		System.out.println("Job table size = " + jobTable.size());
-		
 		// Call swapper to swap job into or out of core		
-		int jobNumber = p[1];
 		swapper.swap(jobNumber);
 		
 		// Call scheduler to schedule a job to run
-		scheduler.schedule(a, p);
+		//scheduler.schedule(a, p);
 		
 		// Call dispatcher to signal sos to start running the scheduled job
 		//dispatcher.dispatch(a, p);
@@ -49,15 +49,23 @@ public class os {
 		
 		// Get the PCB of the job from the job table
 		int jobNumber = p[1];
-		PCB pcb = jobTable.get(jobNumber-1);
+		PCB pcb = jobTable.get(jobNumber);
 		
-		// Unblock job if it was previously blocked
-		if(pcb.jobBlocked)
+		// Unblock job if it was previously blocked and set it to running
+		if(pcb.jobBlocked) {
 			pcb.jobBlocked = false;
+			pcb.jobRunning = true;
+		}
 		
-		
+		// Schedule a job
 		scheduler.schedule(a,p);
-		//dispatcher.dispatch(a, p);
+		
+		// Dispatch a job
+		dispatcher.dispatch(a, p);
+		
+		// Call time manager to incerement CPU
+		// time used by job if job is running
+		//timeManager.updateCPUTime(p);
 	}
 	
 	// Drum interrupt handler
@@ -65,14 +73,15 @@ public class os {
 		
 		System.out.println("Drmint() CALLED!!!");
 		
-		int jobNumber = p[1];
-		
-		// Add job number to ready queue
-		readyQueue.add(jobNumber);
-		
 		// Call the scheduler to schedule a job to run
 		scheduler.schedule(a, p);
-		//dispatcher.dispatch(a, p);
+		
+		// Dispatch a job
+		dispatcher.dispatch(a, p);
+		
+		// Call time manager to incerement CPU
+		// time used by job if job is running
+		//timeManager.updateCPUTime(p);
 	}
 	
 	// Timer-Run-Out interrupt hanlder
@@ -80,7 +89,15 @@ public class os {
 		
 		System.out.println("Tro() CALLED!!!");
 		
-		//scheduler.schedule(a, p);
+		// Schedule a job to run
+		scheduler.schedule(a, p);
+		
+		// Dispatch the scheduled job
+		dispatcher.dispatch(a, p);
+		
+		// Call time manager to incerement CPU
+		// time used by job if job is running
+		//timeManager.updateCPUTime(p);
 	}
 	
 	// Service call to sos
@@ -100,12 +117,12 @@ public class os {
 		// Get the job number from the p array
 		int jobNumber = p[1];
 		
-		// Termination request; swap job out of core
+		// Termination request; remove job entry from the job table
 		if(a[0] == 5) {
 			
 			// Delete the PCB for this 
 			// job from the job table
-			jobTable.remove(jobNumber-1);
+			jobTable.remove(jobNumber);
 			
 		}
 		
@@ -120,11 +137,20 @@ public class os {
 		if(a[0] == 7) {
 			
 			// Set the blocked field in the job's PCB to true
-			jobTable.get(jobNumber-1).jobBlocked = true;
+			jobTable.get(jobNumber).jobBlocked = true;
+			// Set the running filed in the job's PCB to false
+			jobTable.get(jobNumber).jobRunning = false;
 		}
 		 
 		// Call to scheduler to schedule a job to run
 		scheduler.schedule(a, p);	 
+		
+		// Dispatch a job
+		dispatcher.dispatch(a, p);
+		
+		// Call time manager to incerement CPU
+		// time used by job if job is running
+		//timeManager.updateCPUTime(p);
 	}
 
 	/*****************************/
