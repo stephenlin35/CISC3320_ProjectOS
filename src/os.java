@@ -3,10 +3,9 @@ import java.util.*;
 public class os {
 	// Variables and Constants
 	public static int core_address = 0;											// Address in core
-	public static Map<Integer, PCB> jobTable = new HashMap<Integer, PCB>(); 	// List of job tables
+	public static Map<Integer, PCB> jobTable = new HashMap<Integer, PCB>(); 	// List of PCBs
 	public static Queue<Integer> readyQueue = new LinkedList<Integer>();		// Queue of jobs in core
 	public static int time_slice = 5;											// Max run time for a job
-	
 	public static final int DRUM_TO_CORE = 0;	    	// Represents direction of swap from drum to core
 	public static final int CORE_TO_DRUM = 1;	    	// Represents direction of swap from core to drum	
 	
@@ -89,6 +88,16 @@ public class os {
 		
 		System.out.println("Tro() CALLED!!!");
 		
+		int jobNumber = p[1];
+		PCB pcb = jobTable.get(jobNumber);
+		int diff = p[5] - pcb.enterCPUTime;
+		int remaining = pcb.maxCPUTime - diff;
+		p[4] = remaining;
+
+		System.out.println("pcb is " + pcb);
+		System.out.println("diff is " + diff);
+		System.out.println("remaining is " + remaining);
+
 		// Schedule a job to run
 		scheduler.schedule(a, p);
 		
