@@ -1,4 +1,4 @@
-// Class to represent a dispatcher
+ // Class to represent a dispatcher
 public class dispatcher {
 	// Notifies sos about which job to run
 	public static void dispatch(int[] a, int[] p) {
@@ -45,7 +45,7 @@ public class dispatcher {
 			p[2] = baseAddress;
 			p[3] = jobSize;
 			// For now, the time slice is 5 because it hasn't been resolved yet
-			p[4] = 5;	//pcb.maxCPUTime - pcb.CPUTimeUsed;
+			p[4] = pcb.timeSlice;	//pcb.maxCPUTime - pcb.CPUTimeUsed;
 			
 			// Set job to running
 			pcb.jobRunning = true;	

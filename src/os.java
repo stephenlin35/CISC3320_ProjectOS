@@ -32,7 +32,7 @@ public class os {
 			throw new Exception("JOB TABLE FULL");
 		
 		// Call swapper to swap job into or out of core		
-		swapper.swap(jobNumber);
+		swapper.swap(jobNumber, DRUM_TO_CORE);
 		
 		// Call scheduler to schedule a job to run
 		//scheduler.schedule(a, p);
@@ -62,9 +62,10 @@ public class os {
 		// Dispatch a job
 		dispatcher.dispatch(a, p);
 		
-		// Call time manager to incerement CPU
-		// time used by job if job is running
-		//timeManager.updateCPUTime(p);
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
 	}
 	
 	// Drum interrupt handler
@@ -78,25 +79,16 @@ public class os {
 		// Dispatch a job
 		dispatcher.dispatch(a, p);
 		
-		// Call time manager to incerement CPU
-		// time used by job if job is running
-		//timeManager.updateCPUTime(p);
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
 	}
 	
 	// Timer-Run-Out interrupt hanlder
 	public static void Tro(int[] a, int[] p) {
 		
 		System.out.println("Tro() CALLED!!!");
-		
-		int jobNumber = p[1];
-		PCB pcb = jobTable.get(jobNumber);
-		int diff = p[5] - pcb.enterCPUTime;
-		int remaining = pcb.maxCPUTime - diff;
-		p[4] = remaining;
-
-		System.out.println("pcb is " + pcb);
-		System.out.println("diff is " + diff);
-		System.out.println("remaining is " + remaining);
 
 		// Schedule a job to run
 		scheduler.schedule(a, p);
@@ -104,9 +96,10 @@ public class os {
 		// Dispatch the scheduled job
 		dispatcher.dispatch(a, p);
 		
-		// Call time manager to incerement CPU
-		// time used by job if job is running
-		//timeManager.updateCPUTime(p);
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
 	}
 	
 	// Service call to sos
@@ -133,6 +126,8 @@ public class os {
 			// job from the job table
 			jobTable.remove(jobNumber);
 			
+			// Swap the job to drum
+			swapper.swap(jobNumber, CORE_TO_DRUM);			
 		}
 		
 		// Disk I/O operation request		
@@ -157,9 +152,10 @@ public class os {
 		// Dispatch a job
 		dispatcher.dispatch(a, p);
 		
-		// Call time manager to incerement CPU
-		// time used by job if job is running
-		//timeManager.updateCPUTime(p);
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
 	}
 
 	/*****************************/

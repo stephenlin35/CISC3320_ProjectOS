@@ -3,8 +3,15 @@
 public class timeManager {
 	// Function to set the desired time slice
 	// for a job and add it to the job's PCB
-	public static void calcTimeSlice() {
-		
+	public static void calcTimeSlice(int[] p) {
+		int jobNumber = p[1];
+		PCB pcb = os.jobTable.get(jobNumber);
+	    int diff = p[5] - pcb.enterCPUTime;
+		int remaining = pcb.maxCPUTime - diff;
+		p[4] = remaining;
+
+		System.out.println("diff is " + diff);
+		System.out.println("remaining is " + remaining);
 	}
 	
 	// Calculates the CPU time used by the job
