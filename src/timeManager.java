@@ -8,6 +8,8 @@ public class timeManager {
 		PCB pcb = os.jobTable.get(jobNumber);
 	    int diff = p[5] - pcb.enterCPUTime;
 		int remaining = pcb.maxCPUTime - diff;
+		//p[4] = remaining;
+
 		pcb.timeSlice = remaining;
 
 		System.out.println("diff is " + diff);
