@@ -16,7 +16,7 @@ public class MemoryManager {
 	}
 
 	final int MEMORY_SIZE = 100;
-	int inMemory = new int[100];				// array to store the jobs currently in memory 
+	int[] inMemory = new int[100];				// array to store the jobs currently in memory 
 	List<FreeSpace> freeSpaceTable;
 
 	public MemoryManager() {
@@ -30,7 +30,7 @@ public class MemoryManager {
 		freeSpaceTable.add(freeSpace);
 	}
 
-	public int addToMemory(PCB pcb) {
+	public void addToMemory(PCB pcb) {
 		int freeSpace = findFreeSpace(pcb.jobSize);				// find an availible free space
 		int optimalSize = findOptimalSize(pcb.jobSize);			// find the best fit free space
 		for(int i = 0; i< pcb.jobSize; i++) {
@@ -41,10 +41,10 @@ public class MemoryManager {
 	public int findFreeSpace(int size) {
 		int index = -1;
 		int currentSize = Integer.MAX_VALUE;		// hightest int
-		for(int i = 0; i < freeSpaceTable.size; i++) {		// loop to find an available free space
-			if(freeSpaceTable[i] >= size) {					// in the FST
-				if(freeSpaceTable[i] < currentSize) {
-					currentSize = freeSpaceTable;
+		for(int i = 0; i < freeSpaceTable.size(); i++) {		// loop to find an available free space
+			if(freeSpaceTable.get(i).size >= size) {						// in the FST
+				if(freeSpaceTable.get(i).size < currentSize) {
+					currentSize = freeSpaceTable.get(i).size;
 					index = i;
 				}
 			}
@@ -54,19 +54,19 @@ public class MemoryManager {
 
 	public int findOptimalSize(int size) {
 		int currentSize = Integer.MAX_VALUE;		// hightest int
-		for(int i = 0; i < freeSpaceTable.size; i++) {		// loop to find the best fit for the job
-			if(freeSpaceTable[i] >= size) {					
-				if(freeSpaceTable[i] < currentSize) {
-					currentSize = freeSpaceTable;
+		for(int i = 0; i < freeSpaceTable.size(); i++) {		// loop to find the best fit for the job
+			if(freeSpaceTable.get(i).size >= size) {					
+				if(freeSpaceTable.get(i).size < currentSize) {
+					currentSize = freeSpaceTable.get(i).size;
 				}
 			}
 		}
 		return currentSize;							// return the optimal size to store the job
 	}
 
-	public int updateMVP(int jobSize, int index, int optimalSize) {
-		for(int i = 0; i < freeSpaceTable.size; i++) {
-			if(index == freeSpaceTable[i].start) {
+	public void updateMVP(int jobSize, int index, int optimalSize) {
+		for(int i = 0; i < freeSpaceTable.size(); i++) {
+			if(index == freeSpaceTable.get(i).start) {
 
 			}
 		}
