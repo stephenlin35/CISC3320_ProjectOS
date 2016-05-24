@@ -4,10 +4,12 @@ public class os {
 	// Variables and Constants
 	public static int core_address = 0;											// Address in core
 	public static Map<Integer, PCB> jobTable = new HashMap<Integer, PCB>(); 	// List of PCBs
-	public static Queue<Integer> readyQueue = new LinkedList<Integer>();		// Queue of jobs in core
+	public static Queue<Integer> readyQueue = new LinkedList<Integer>();		// Queue of jobs ready to run
+	public static LinkedList<Integer> diskQueue = new LinkedList<Integer>();	// Disk queue for jobs requesting I/O	
 	public static int time_slice = 5;											// Max run time for a job
-	public static final int DRUM_TO_CORE = 0;	    	// Represents direction of swap from drum to core
-	public static final int CORE_TO_DRUM = 1;	    	// Represents direction of swap from core to drum	
+	public static final int DRUM_TO_CORE = 0;	    				// Represents direction of swap from drum to core
+	public static final int CORE_TO_DRUM = 1;	    				// Represents direction of swap from core to drum	
+	public static int running_job = -1;								// Represents the job that is currently using CPU
 	
 	// First method called by sos
 	public static void startup() {
@@ -21,13 +23,19 @@ public class os {
 		
 		System.out.println("Crint() CALLED!!!");
 		
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
+		
 		// Save job info in a PCB inside the job table indexed
 		// by the job number if there is room in the job table
 		
 		int jobNumber = p[1];	   // First get the job number
 		
-		if(jobTable.size() < 50)
-			jobTable.put(jobNumber, new PCB(p , core_address));	// Also increment core_address here
+		if(jobTable.size() < 50) {
+			jobTable.put(jobNumber, new PCB(p , core_address));	// Number of job and start address in core
+		}
 		else
 			throw new Exception("JOB TABLE FULL");
 		
@@ -46,6 +54,11 @@ public class os {
 		
 		System.out.println("Diskint() CALLED!!!");
 		
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
+		
 		// Get the PCB of the job from the job table
 		int jobNumber = p[1];
 		PCB pcb = jobTable.get(jobNumber);
@@ -56,56 +69,63 @@ public class os {
 			pcb.jobRunning = true;
 		}
 		
+		// Clear the pendingIO flag for the job
+		pcb.pendingIO = false;
+		
 		// Schedule a job
 		scheduler.schedule(a,p);
 		
 		// Dispatch a job
 		dispatcher.dispatch(a, p);
-		
-		// Call time manager to calculate the
-		// time slice for job based on how much
-		// time it has until it's completed
-		timeManager.calcTimeSlice(p);
 	}
 	
 	// Drum interrupt handler
 	public static void Drmint(int[] a, int[] p) {
 		
 		System.out.println("Drmint() CALLED!!!");
+		System.out.println("???????????????????????????????????????????????????Job " + p[1] + " swapped out of core");
+		
+		// Set the job's inCore flag to true
+		jobTable.get(p[1]).inCore = true;
+		
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);		
 		
 		// Call the scheduler to schedule a job to run
 		scheduler.schedule(a, p);
 		
 		// Dispatch a job
 		dispatcher.dispatch(a, p);
-		
-		// Call time manager to calculate the
-		// time slice for job based on how much
-		// time it has until it's completed
-		timeManager.calcTimeSlice(p);
 	}
 	
 	// Timer-Run-Out interrupt hanlder
 	public static void Tro(int[] a, int[] p) {
 		
 		System.out.println("Tro() CALLED!!!");
+		
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);		
 
 		// Schedule a job to run
 		scheduler.schedule(a, p);
 		
 		// Dispatch the scheduled job
 		dispatcher.dispatch(a, p);
-		
-		// Call time manager to calculate the
-		// time slice for job based on how much
-		// time it has until it's completed
-		timeManager.calcTimeSlice(p);
 	}
 	
 	// Service call to sos
 	public static void Svc(int[] a, int[] p) {
 		
 		System.out.println("Svc() CALLED!!!");
+		
+		// Call time manager to calculate the
+		// time slice for job based on how much
+		// time it has until it's completed
+		timeManager.calcTimeSlice(p);
 		
 		/*************************************** 
 		 * Check the value of a to determine   *
@@ -120,43 +140,59 @@ public class os {
 		int jobNumber = p[1];
 		
 		// Termination request; remove job entry from the job table
-		if(a[0] == 5) {
-			
+		if(a[0] == 5) {	
+
 			// Delete the PCB for this 
 			// job from the job table
-			jobTable.remove(jobNumber);
-			
-			// Swap the job to drum
-			swapper.swap(jobNumber, CORE_TO_DRUM);			
+			jobTable.remove(jobNumber);	
 		}
 		
 		// Disk I/O operation request		
 		if(a[0] == 6) {	
 					 
-			// Start a disk data transfer
-			sos.siodisk(jobNumber);
+			// Add job to disk queue
+			diskQueue.add(jobNumber);
+			
+			// Indicate that job is awaiting service
+			jobTable.get(jobNumber).pendingIO = true;
+			
+			// Indicate that the job is not using CPU
+			jobTable.get(jobNumber).jobRunning = false;
 		}
 		 
 		// Block request
 		if(a[0] == 7) {
 			
-			// Set the blocked field in the job's PCB to true
-			jobTable.get(jobNumber).jobBlocked = true;
-			// Set the running filed in the job's PCB to false
-			jobTable.get(jobNumber).jobRunning = false;
+			// If job has pending I/O requests, set the
+			// blocked field in the job's PCB to true
+			// and the running field to false
+			if(jobTable.get(jobNumber).pendingIO) {
+				jobTable.get(jobNumber).jobBlocked = true;
+				jobTable.get(jobNumber).jobRunning = false;
+			}			
 		}
 		 
 		// Call to scheduler to schedule a job to run
 		scheduler.schedule(a, p);	 
 		
 		// Dispatch a job
-		dispatcher.dispatch(a, p);
-		
-		// Call time manager to calculate the
-		// time slice for job based on how much
-		// time it has until it's completed
-		timeManager.calcTimeSlice(p);
+		dispatcher.dispatch(a, p);	
+			
+		// Start a disk I/O for the job at the front of the disk queue
+		startIO();
 	}
 
 	/*****************************/
+	
+	// Calls sos to start disk I/O for the
+	// job at the front of the disk queue
+	public static void startIO() {
+		// If the disk queue contains jobs,
+		// call sos.siodisk to start I/O for
+		// the job at the front of the queue
+		if(diskQueue.size() > 0) {
+			int jobnumber = diskQueue.remove();
+			sos.siodisk(jobnumber);
+		}
+	}
 }

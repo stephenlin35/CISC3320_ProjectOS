@@ -48,13 +48,20 @@ public class dispatcher {
 			p[4] = pcb.timeSlice;	//pcb.maxCPUTime - pcb.CPUTimeUsed;
 			
 			// Set job to running
-			pcb.jobRunning = true;	
-		}	
+			pcb.jobRunning = true;
 
+			// Set the os.running_job field to the current job number
+			os.running_job = jobToRun;
+			
+			// Set the enterCPUTime for the job to the current time
+			pcb.enterCPUTime = p[5];
+		}
+		
 		else {
 			// Set a = 1 if no jobs are on the ready queue
 			a[0] = 1;
-		}
-		
+			// Indicate that no job is currently running
+			os.running_job = -1;
+		}		
 	}
 }
