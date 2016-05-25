@@ -23,10 +23,6 @@ public class PCB {
 		maxCPUTime = p[4];
 		enterCPUTime = p[5];
 		timeRemaining = timeSlice = maxCPUTime;
-		
-		//timeSlice = (int) Math.floor((maxCPUTime * 0.25) + 0.5);	// Time slice is 25% of the max CPU Time
-																	// Use Math.floor to round off to the	
-																	// nearest integer
 		this.coreAddress = coreAddress;
 	}
 }

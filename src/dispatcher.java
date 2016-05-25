@@ -7,8 +7,6 @@ public class dispatcher {
 		* Set the values of the a and p array to *
 		* indicate sos about which job to run    *
 		*****************************************/
-		
-		System.out.println("dispatcher called!!!");
 		   
 		// Get the job # at the front of the ready queue
 		// if there are jobs in the ready queue
@@ -44,8 +42,7 @@ public class dispatcher {
 			
 			p[2] = baseAddress;
 			p[3] = jobSize;
-			// For now, the time slice is 5 because it hasn't been resolved yet
-			p[4] = pcb.timeSlice;	//pcb.maxCPUTime - pcb.CPUTimeUsed;
+			p[4] = pcb.timeSlice;
 			
 			// Set job to running
 			pcb.jobRunning = true;
@@ -60,6 +57,7 @@ public class dispatcher {
 		else {
 			// Set a = 1 if no jobs are on the ready queue
 			a[0] = 1;
+			
 			// Indicate that no job is currently running
 			os.running_job = -1;
 		}		

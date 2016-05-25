@@ -6,6 +6,7 @@ public class os {
 	public static Map<Integer, PCB> jobTable = new HashMap<Integer, PCB>(); 	// List of PCBs
 	public static Queue<Integer> readyQueue = new LinkedList<Integer>();		// Queue of jobs ready to run
 	public static LinkedList<Integer> diskQueue = new LinkedList<Integer>();	// Disk queue for jobs requesting I/O	
+	public static MemoryManager memManager = new MemoryManager();				// Instance of MemoryManager
 	public static int time_slice = 5;											// Max run time for a job
 	public static final int DRUM_TO_CORE = 0;	    				// Represents direction of swap from drum to core
 	public static final int CORE_TO_DRUM = 1;	    				// Represents direction of swap from core to drum	
@@ -13,15 +14,13 @@ public class os {
 	
 	// First method called by sos
 	public static void startup() {
-		sos.ontrace();
+		sos.offtrace();
 	}
 	
 	/*** INTERRUPT HANDLERS ***/
 	
 	// Indicates the arrival of a new job on the drum
 	public static void Crint(int[] a, int[] p) throws Exception {
-		
-		System.out.println("Crint() CALLED!!!");
 		
 		// Call time manager to calculate the
 		// time slice for job based on how much
@@ -39,20 +38,21 @@ public class os {
 		else
 			throw new Exception("JOB TABLE FULL");
 		
+		// Call memoryManager to add job info to free space table
+		memManager.addToMemory(jobTable.get(jobNumber));
+		
 		// Call swapper to swap job into or out of core		
 		swapper.swap(jobNumber, DRUM_TO_CORE);
 		
 		// Call scheduler to schedule a job to run
-		//scheduler.schedule(a, p);
+		scheduler.schedule(a, p);
 		
 		// Call dispatcher to signal sos to start running the scheduled job
-		//dispatcher.dispatch(a, p);
+		dispatcher.dispatch(a, p);
 	}
 	
 	// Disk interrupt handler
 	public static void Dskint(int[] a, int[] p) {
-		
-		System.out.println("Diskint() CALLED!!!");
 		
 		// Call time manager to calculate the
 		// time slice for job based on how much
@@ -81,10 +81,7 @@ public class os {
 	
 	// Drum interrupt handler
 	public static void Drmint(int[] a, int[] p) {
-		
-		System.out.println("Drmint() CALLED!!!");
-		System.out.println("???????????????????????????????????????????????????Job " + p[1] + " swapped out of core");
-		
+			
 		// Set the job's inCore flag to true
 		jobTable.get(p[1]).inCore = true;
 		
@@ -103,8 +100,6 @@ public class os {
 	// Timer-Run-Out interrupt hanlder
 	public static void Tro(int[] a, int[] p) {
 		
-		System.out.println("Tro() CALLED!!!");
-		
 		// Call time manager to calculate the
 		// time slice for job based on how much
 		// time it has until it's completed
@@ -119,8 +114,6 @@ public class os {
 	
 	// Service call to sos
 	public static void Svc(int[] a, int[] p) {
-		
-		System.out.println("Svc() CALLED!!!");
 		
 		// Call time manager to calculate the
 		// time slice for job based on how much
@@ -141,6 +134,9 @@ public class os {
 		
 		// Termination request; remove job entry from the job table
 		if(a[0] == 5) {	
+		
+			// Clear the entry from the FST
+			memManager.updateFST(jobNumber);
 
 			// Delete the PCB for this 
 			// job from the job table
